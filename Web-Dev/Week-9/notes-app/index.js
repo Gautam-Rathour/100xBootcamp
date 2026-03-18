@@ -1,0 +1,103 @@
+
+
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const { authMiddleware } = require("./middleware");
+// const path = require("path");
+
+
+const app  = express();
+// app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
+
+const notes = [];
+const users = [];
+
+
+app.post("/signup", function(req, res) {
+    const username = req.body.username;
+    const password = req.body.password;
+    const userExists = users.find(user => user.username === username);
+    if(userExists) {
+        return res.status(403).json({
+            message: "User with this username already exists"
+        })
+    }
+
+    users.push({
+        username: username, 
+        password: password
+    })
+    
+    res.json({
+        message: "You have signed up"
+    })
+})
+
+
+app.post("/signin", function(req, res) {
+    const username = req.body.username;
+    const password = req.body.password;
+
+    const userExists = users.find(user => user.username === username && user.password === password);
+
+    if(!userExists) {
+        res.status(403).json({
+            message: "Incorrect credentials"
+        })
+        return;
+    }
+
+    //json web tokens
+    const token = jwt.sign({
+        username: userExists.username
+    }, "Any_secret");
+
+    res.json({
+        token: token
+    })
+})
+
+
+app.post("/notes", authMiddleware, function(req, res) {
+
+    const username = req.username    
+    const note = req.body.note;
+    notes.push({
+        username, 
+        note
+    });
+
+    res.json({
+        message: "Done!"
+    })
+})
+
+
+app.get("/notes", authMiddleware, function(req, res) {
+    const token = req.headers.token;
+
+    const userNotes = notes.filter(note => note.username === username);
+    res.json({
+        notes: userNotes
+    })
+})
+
+
+app.get("/", function(req, res) {
+    res.sendFile("/Users/gautamrathour/BootCamp-by-kirat/Web-Dev/Week-9/notes-app/frontend/index.html")
+})
+
+app.get("/signup", function(req, res) {
+    res.sendFile("/Users/gautamrathour/BootCamp-by-kirat/Web-Dev/Week-9/notes-app/frontend/signup.html")
+})
+
+app.get("/signin", function(req, res) {
+    res.sendFile("/Users/gautamrathour/BootCamp-by-kirat/Web-Dev/Week-9/notes-app/frontend/signin.html")
+})
+
+app.listen(3000);
+
+// app.listen((3000) => {
+//     console.log("Server is runing on port 3000 ")
+// })
